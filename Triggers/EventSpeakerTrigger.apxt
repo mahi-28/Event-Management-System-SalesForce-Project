@@ -1,0 +1,42 @@
+trigger EventSpeakerTrigger on EventSpeaker__c (before insert,before update) {
+    
+    //step 1 - get the speaker id and event id
+    //step 2 - SOQL on Event to get the start date and put them into a Map
+    //step 3 - SOQL on Event - Speaker to get the related Speaker along with the Event Start Date
+    //step 4 - Check the Conditions and show the error
+    
+    //step 1
+    Set<Id> speakerIdsSet = new Set<Id>();
+    Set<Id> eventIdsSet = new Set<Id>();
+    
+    for(EventSpeaker__c es : Trigger.New) {
+        speakerIdsSet.add(es.Speaker__c);
+        eventIdsSet.add(es.Event__c);
+        
+    }
+    
+    //step 2
+    Map<Id,DateTime> requestedEvents = new Map<Id,DateTime>();
+    List<Event_Info__c> relatedEventList = [select Id,	Start_Date_Time__c from Event_Info__c where Id IN : eventIdsSet];
+    for(Event_Info__c evt : relatedEventList) {
+        requestedEvents.put(evt.Id,evt.Start_Date_Time__c);
+    }
+    
+    //step 3
+    List<EventSpeaker__c> relatedEventSpeakerList = [select Id,Event__c,Speaker__c,
+                                                     Event__r.Start_Date_Time__c
+                                                     from EventSpeaker__c
+                                                     where Speaker__c IN :speakerIdsSet];
+    
+    //step 4
+    for(EventSpeaker__c es : Trigger.New) {
+        DateTime bookingTime = requestedEvents.get(es.Event__c);
+        
+        for(EventSpeaker__c es1 : relatedEventSpeakerList) {
+            if(es1.Speaker__c == es.Speaker__c && es1.Event__r.Start_Date_Time__c == bookingTime) {
+                es.Speaker__c.addError('The speaker is already booked at that time');
+            }
+        }
+    }
+
+}
