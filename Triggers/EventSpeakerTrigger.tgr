@@ -1,3 +1,0 @@
-trigger EventSpeakerTrigger on EventSpeakers__c (before insert) {
-
-}
